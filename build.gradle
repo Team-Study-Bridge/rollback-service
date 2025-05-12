@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '3.4.4'
     id 'io.spring.dependency-management' version '1.1.7'
+    id 'jacoco'
 }
 
 ext {
@@ -32,6 +33,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
     implementation 'org.springframework.cloud:spring-cloud-stream'
     implementation 'org.springframework.cloud:spring-cloud-stream-binder-rabbit'
+    implementation 'org.springframework.boot:spring-boot-starter-data-r2dbc'
     implementation 'org.springframework.cloud:spring-cloud-starter-config'
     implementation 'org.springframework.cloud:spring-cloud-starter-vault-config:3.1.2'
     implementation 'org.springframework.cloud:spring-cloud-starter-bootstrap'
@@ -50,6 +52,60 @@ dependencyManagement {
     }
 }
 
-tasks.named('test') {
-    useJUnitPlatform()
+test {
+    useJUnitPlatform()  // JUnit5 사용 설정 (중복이라도 명시적으로 설정)
+    finalizedBy jacocoTestReport  // 테스트 후 리포트 생성하도록 설정
 }
+
+jacoco {
+    toolVersion = "0.8.10"
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        html.required.set(true)
+        xml.required.set(true)
+        csv.required.set(true)
+        html.outputLocation.set(file("$buildDir/reports/jacoco"))
+    }
+    classDirectories.setFrom(
+            files(fileTree(
+                    dir: "$buildDir/classes/java/main",
+                    includes: [
+                            'org/example/rollbackservice/discount/**'
+                    ],
+                    excludes: [
+                            'org/example/rollbackservice/discount/DiscountRollbackFailure',
+                            'org/example/rollbackservice/discount/DiscountRollbackFailureRepository*'
+                    ]
+            ))
+    )
+}
+
+jacocoTestCoverageVerification {
+    classDirectories.setFrom(
+            files(fileTree(
+                    dir: "$buildDir/classes/java/main",
+                    includes: [
+                            'org/example/rollbackservice/discount/**'
+                    ],
+                    excludes: [
+                            'org/example/rollbackservice/discount/DiscountRollbackFailure',
+                            'org/example/rollbackservice/discount/DiscountRollbackFailureRepository*'
+                    ]
+            ))
+    )
+    violationRules {
+        rule {
+            element = 'CLASS'
+            limit {
+                counter = 'INSTRUCTION'
+                value = 'COVEREDRATIO'
+                minimum = 0.8
+            }
+        }
+    }
+}
+
+check.dependsOn jacocoTestCoverageVerification
