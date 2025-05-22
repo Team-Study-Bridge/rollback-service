@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: rollback-service
+  config:
+    import: optional:configserver:${CONFIG_SERVER_URL}
+  cloud:
+    vault:
+      uri: ${VAULT_URI}
+      authentication: TOKEN
+      token: ${VAULT_TOKEN}
+      kv:
+        enabled: true
+        backend: secret
+        application-name: rollback-service
+        profile-separator: '-'
