@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: rollback-service
+  namespace: argocd                     # Argo CD 설치된 namespace
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Team-Study-Bridge/rollback-service
+    targetRevision: main                # 브랜치
+    path: helm/rollback-service         # Helm Chart 경로
+    helm:
+      valueFiles:
+        - values.yaml                   # values 파일 경로
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default                  # 서비스가 배포될 K8s 네임스페이스
+  syncPolicy:
+    automated:
+      prune: true                       # Git에 없는 리소스 삭제
+      selfHeal: true                    # 상태 불일치 시 자동 복구
+    syncOptions:
+      - CreateNamespace=false           # default 네임스페이스 사용 시 false
