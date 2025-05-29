@@ -1,0 +1,62 @@
+name: Build, Push Docker Image, Update Helm Chart, Create PR
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  AWS_REGION: ap-northeast-2
+  ECR_REPOSITORY: aigongbu/service-images
+  IMAGE_TAG: ${{ github.sha }}
+  SERVICE_NAME: rollback-service
+  HELM_PATH: helm/rollback-service/values.yaml
+
+jobs:
+  build-push-update:
+    # 무한 순환 방지 조건
+    if: >
+      github.ref == 'refs/heads/main' &&
+      !contains(github.event.head_commit.message, 'update image tag to')
+
+    runs-on: ubuntu-latest
+    name: Build, Push, and Create PR
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        run: |
+          aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.$AWS_REGION.amazonaws.com
+
+      - name: Build and push Docker image
+        run: |
+          docker build -t $SERVICE_NAME:$IMAGE_TAG .
+          docker tag $SERVICE_NAME:$IMAGE_TAG ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:$IMAGE_TAG
+
+      - name: Update Helm values.yaml with image tag and secrets
+        run: |
+          sed -i "s|__IMAGE_TAG__|$IMAGE_TAG|" $HELM_PATH
+          sed -i "s|__CONFIG_SERVER_URL__|${{ secrets.CONFIG_SERVER_URL }}|" $HELM_PATH
+          sed -i "s|__VAULT_URI__|${{ secrets.VAULT_URI }}|" $HELM_PATH
+          sed -i "s|__VAULT_TOKEN__|${{ secrets.VAULT_TOKEN }}|" $HELM_PATH
+
+      - name: Create Pull Request
+        id: cpr
+        uses: peter-evans/create-pull-request@v5
+        with:
+          commit-message: "chore(${{ env.SERVICE_NAME }}): update image tag to $IMAGE_TAG"
+          title: "chore(${{ env.SERVICE_NAME }}): update image tag to $IMAGE_TAG"
+          body: "Auto-generated PR to update Docker image tag to `${{ github.sha }}`"
+          branch: update/${{ env.SERVICE_NAME }}-image-${{ github.sha }}
+          base: main
+          delete-branch: true
