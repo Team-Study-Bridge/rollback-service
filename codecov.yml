@@ -1,0 +1,24 @@
+codecov:
+  require_ci_to_pass: yes  # CI 통과해야 업로드 반영
+
+coverage:
+  status:
+    project:
+      default:
+        target: 80%       # 프로젝트 전체 기준선
+        threshold: 1%     # 1% 이하 차이는 무시
+        if_not_found: success
+        informational: false
+    patch:
+      default:
+        target: 70%       # PR diff 기준 최소 기준
+        threshold: 1%
+        if_not_found: success
+        informational: false
+
+comment:
+  layout: "reach, diff, files"
+  behavior: default
+  require_changes: true
+  require_base: yes
+  require_head: yes

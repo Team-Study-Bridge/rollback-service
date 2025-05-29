@@ -1,24 +1,30 @@
 name: rollback-service
 
-replicaCount: 1
+replicaCount: 1               # HPA 안 쓸 경우 수동 복제 수 지정
+
+nodeSelector:
+  nodegroup-type: first
 
 image:
   repository: 879381276515.dkr.ecr.ap-northeast-2.amazonaws.com/aigongbu/service-images
-  tag: latest
+  tag: 34f6592a54d83c16adb23cc6f026463b7ad10c50
   pullPolicy: IfNotPresent
 
 containerPort: 80
 
-env:
-  - name: SPRING_PROFILES_ACTIVE
-    value: dev
-  - name: CONFIG_SERVER_URL
-    value: __CONFIG_SERVER_URL__
-  - name: VAULT_URI
-    value: __VAULT_URI__
-  - name: VAULT_TOKEN
-    value: __VAULT_TOKEN__
+resources:                    # 오토 스케일 기반 마련
+  requests:
+    cpu: 200m
+    memory: 384Mi
+  limits:
+    cpu: 400m
+    memory: 768Mi
 
 service:
-  type: ClusterIP
+  protocol: TCP
   port: 80
+  targetPort: 80
+  type: ClusterIP
+
+hpa:
+  enabled: false

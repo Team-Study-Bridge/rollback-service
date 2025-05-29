@@ -41,5 +41,4 @@ public class PortOneClient {
                 .bodyToMono(PortOneTokenResponse.class)
                 .map(token -> token.response().access_token());
     }
-
 }

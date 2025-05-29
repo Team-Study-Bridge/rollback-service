@@ -15,4 +15,10 @@ public class ClientConfig {
                 .build();
     }
 
+    @Bean
+    WebClient lectureWebClient(@Value("${webclient.lecture-uri}") String lectureUri) {
+        return WebClient.builder()
+                .baseUrl(lectureUri)
+                .build();
+    }
 }

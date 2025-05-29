@@ -11,27 +11,39 @@ spec:
       app: {{ .Values.name }}
   template:
     metadata:
+      name: {{ .Values.name }}
       labels:
         app: {{ .Values.name }}
     spec:
+      {{- if .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml .Values.nodeSelector | nindent 8 }}
+        {{- end }}
       containers:
         - name: {{ .Values.name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.containerPort }}
-              name: http
           lifecycle:
             preStop:
               exec:
-                command:
-                  - sh
-                  - -c
-                  - sleep 5
-                {{- if .Values.env }}
+                command: [ "sh", "-c", "sleep 5" ]
           env:
-                  {{- range .Values.env }}
-            - name: {{ .name }}
-              value: {{ .value | quote }}
-                  {{- end }}
-                {{- end }}
+            - name: SPRING_PROFILES_ACTIVE
+              value: dev
+            - name: CONFIG_SERVER_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.name }}-secrets
+                  key: CONFIG_SERVER_URL
+            - name: VAULT_URI
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.name }}-secrets
+                  key: VAULT_URI
+            - name: VAULT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.name }}-secrets
+                  key: VAULT_TOKEN
