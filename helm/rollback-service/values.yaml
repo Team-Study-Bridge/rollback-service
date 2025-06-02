@@ -1,0 +1,30 @@
+name: rollback-service
+
+replicaCount: 1               # HPA 안 쓸 경우 수동 복제 수 지정
+
+nodeSelector:
+  nodegroup-type: first
+
+image:
+  repository: 879381276515.dkr.ecr.ap-northeast-2.amazonaws.com/aigongbu/service-images
+  tag: f721b0b41d3956d4274541685a68d43304e0e5ce
+  pullPolicy: IfNotPresent
+
+containerPort: 80
+
+resources:                    # 오토 스케일 기반 마련
+  requests:
+    cpu: 200m
+    memory: 384Mi
+  limits:
+    cpu: 400m
+    memory: 768Mi
+
+service:
+  protocol: TCP
+  port: 80
+  targetPort: 80
+  type: ClusterIP
+
+hpa:
+  enabled: false
